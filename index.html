@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Poll API — Test Client</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161922;
+    --border: #262b38;
+    --text: #e6e8ee;
+    --muted: #8b93a7;
+    --accent: #5b8def;
+    --accent-dim: #2c4a7c;
+    --good: #4cb782;
+    --bad: #e25c5c;
+    --warn: #e2a45c;
+    --mono: "SF Mono", "Cascadia Code", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 2rem 1.5rem 4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1 { font-size: 1.4rem; letter-spacing: 0.02em; margin-bottom: 0.2rem; }
+  .sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 2rem; }
+  .grid {
+    width: 100%;
+    max-width: 960px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .panel.wide { grid-column: 1 / -1; }
+  .panel h2 {
+    font-size: 0.95rem;
+    margin: 0 0 1rem 0;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .panel h2 .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent-dim);
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .panel h2 .dot.admin { background: #7c3a2c; }
+  label { display: block; font-size: 0.75rem; color: var(--muted); margin: 0.6rem 0 0.25rem; }
+  input, textarea {
+    width: 100%;
+    background: #0c0e13;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.5rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-family: inherit;
+  }
+  input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  .choice-row { display: flex; gap: 0.4rem; margin-top: 0.4rem; }
+  .choice-row input { flex: 1; }
+  button {
+    background: var(--accent-dim);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-top: 0.8rem;
+  }
+  button:hover { background: var(--accent); }
+  button.ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  button.ghost:hover { border-color: var(--muted); color: var(--text); }
+  button.small { padding: 0.3rem 0.55rem; font-size: 0.72rem; margin-top: 0; }
+  button.danger {
+    background: transparent;
+    border: 1px solid var(--bad);
+    color: var(--bad);
+  }
+  button.danger:hover { background: var(--bad); color: #fff; }
+  button.safe {
+    background: transparent;
+    border: 1px solid var(--good);
+    color: var(--good);
+  }
+  button.safe:hover { background: var(--good); color: #fff; }
+  .row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .status {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    white-space: pre-wrap;
+    background: #0c0e13;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem;
+    margin-top: 0.7rem;
+    max-height: 160px;
+    overflow-y: auto;
+    color: var(--muted);
+  }
+  .status.ok { border-color: var(--good); color: var(--good); }
+  .status.err { border-color: var(--bad); color: var(--bad); }
+  .session-bar {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .session-bar .user { color: var(--accent); }
+  .poll-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem;
+    margin-top: 0.6rem;
+  }
+  .poll-card h3 { margin: 0 0 0.2rem 0; font-size: 0.95rem; }
+  .poll-card .meta { color: var(--muted); font-size: 0.72rem; margin-bottom: 0.5rem; }
+  .closed-tag { color: var(--bad); }
+  .choices-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+  .choice-pill {
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .choice-pill:hover { border-color: var(--accent); background: #1a2030; }
+  .results-bar-bg {
+    background: #0c0e13;
+    border-radius: 4px;
+    height: 7px;
+    width: 100%;
+    overflow: hidden;
+    margin-top: 0.2rem;
+  }
+  .results-bar-fill { background: var(--accent); height: 100%; transition: width 0.4s; }
+  .result-row { font-size: 0.75rem; margin-top: 0.5rem; }
+  .empty { color: var(--muted); font-size: 0.8rem; font-style: italic; margin-top: 0.6rem; }
+
+  /* User management table */
+  .user-table { width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.8rem; }
+  .user-table th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: normal;
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .user-table td { padding: 0.4rem 0.5rem; border-bottom: 1px solid #1a1f2b; vertical-align: middle; }
+  .role-badge {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-family: var(--mono);
+  }
+  .role-badge.admin { background: #3a1f1a; color: #e25c5c; }
+  .role-badge.moderator { background: #1a2a3a; color: #5b8def; }
+  .role-badge.user { background: #1a2a1a; color: #4cb782; }
+  .active-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    margin-right: 0.3rem;
+  }
+  .active-dot.on { background: var(--good); }
+  .active-dot.off { background: var(--bad); }
+</style>
+</head>
+<body>
+
+<h1>Poll API — Test Client</h1>
+<div class="sub">Testing interface — register · login · create · vote · results · admin</div>
+
+<div class="session-bar">
+  <div>API base: <input id="apiBase" value="https://polling-api-npt4.onrender.com" style="width:220px;display:inline-block;"></div>
+  <div id="sessionInfo">Not logged in</div>
+</div>
+
+<div class="grid">
+
+  <!-- REGISTER -->
+  <div class="panel">
+    <h2><span class="dot"></span>Register</h2>
+    <label>Username</label>
+    <input id="regUsername" placeholder="user_demo">
+    <label>Email</label>
+    <input id="regEmail" placeholder="user@example.com">
+    <label>Password</label>
+    <input id="regPassword" type="password" placeholder="at least 8 characters">
+    <button onclick="register()">Create account</button>
+    <div id="regStatus" class="status" style="display:none;"></div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="panel">
+    <h2><span class="dot"></span>Log in</h2>
+    <label>Username</label>
+    <input id="loginUsername" placeholder="user_demo">
+    <label>Password</label>
+    <input id="loginPassword" type="password" placeholder="password">
+    <div class="row">
+      <button onclick="login()">Log in</button>
+      <button class="ghost" onclick="logout()">Log out</button>
+    </div>
+    <div id="loginStatus" class="status" style="display:none;"></div>
+  </div>
+
+  <!-- CREATE POLL -->
+  <div class="panel wide">
+    <h2><span class="dot"></span>Create poll <span style="color:var(--muted);font-weight:normal;">(requires login)</span></h2>
+    <label>Title</label>
+    <input id="pollTitle" placeholder="Favorite season?">
+    <label>Description</label>
+    <input id="pollDescription" placeholder="optional">
+    <label>Choices</label>
+    <div id="choicesContainer">
+      <div class="choice-row">
+        <input class="choiceInput" placeholder="Choice 1">
+        <button class="ghost small" style="margin-top:0;" onclick="removeChoice(this)">×</button>
+      </div>
+      <div class="choice-row">
+        <input class="choiceInput" placeholder="Choice 2">
+        <button class="ghost small" style="margin-top:0;" onclick="removeChoice(this)">×</button>
+      </div>
+    </div>
+    <div class="row">
+      <button class="ghost" onclick="addChoice()">+ add choice</button>
+      <button onclick="createPoll()">Create poll</button>
+    </div>
+    <div id="createStatus" class="status" style="display:none;"></div>
+  </div>
+
+  <!-- POLLS LIST -->
+  <div class="panel wide">
+    <h2><span class="dot"></span>Polls</h2>
+    <button class="ghost" onclick="loadPolls()">↻ Refresh list</button>
+    <div id="pollsContainer"></div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="panel wide">
+    <h2><span class="dot admin"></span>User management <span style="color:var(--muted);font-weight:normal;">(admin role only)</span></h2>
+    <button class="ghost" onclick="loadUsers()">Load users</button>
+    <div id="usersContainer"></div>
+    <div id="banStatus" class="status" style="display:none;"></div>
+  </div>
+
+</div>
+
+<script>
+let accessToken = null;
+let currentUsername = null;
+
+function apiUrl(path) {
+  return document.getElementById('apiBase').value.replace(/\/$/, '') + path;
+}
+
+// ── Error extraction ──────────────────────────────────────────────────────────
+// Handles both { "detail": "..." } and field-level errors like
+// { "choice_id": ["This poll is closed."] }
+function extractError(data) {
+  if (typeof data === 'string') return data;
+  if (data.detail) return data.detail;
+  const keys = Object.keys(data);
+  if (keys.length > 0) {
+    const val = data[keys[0]];
+    return Array.isArray(val) ? val[0] : String(val);
+  }
+  return JSON.stringify(data);
+}
+
+function showStatus(elId, data, isError) {
+  const el = document.getElementById(elId);
+  el.style.display = 'block';
+  el.className = 'status ' + (isError ? 'err' : 'ok');
+  el.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+}
+
+function updateSessionBar() {
+  const el = document.getElementById('sessionInfo');
+  el.innerHTML = accessToken
+    ? `Logged in as <span class="user">${currentUsername}</span>`
+    : 'Not logged in';
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+async function register() {
+  const body = {
+    username: document.getElementById('regUsername').value,
+    email: document.getElementById('regEmail').value,
+    password: document.getElementById('regPassword').value
+  };
+  try {
+    const res = await fetch(apiUrl('/api/auth/register/'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    showStatus('regStatus', data, !res.ok);
+    if (res.ok) {
+      // Clear fields on success
+      document.getElementById('regUsername').value = '';
+      document.getElementById('regEmail').value = '';
+      document.getElementById('regPassword').value = '';
+    }
+  } catch (e) {
+    showStatus('regStatus', 'Network error: ' + e.message, true);
+  }
+}
+
+async function login() {
+  const username = document.getElementById('loginUsername').value;
+  const body = { username, password: document.getElementById('loginPassword').value };
+  try {
+    const res = await fetch(apiUrl('/api/auth/token/'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      accessToken = data.access;
+      currentUsername = username;
+      updateSessionBar();
+      showStatus('loginStatus', 'Logged in. Access token stored in memory.', false);
+      document.getElementById('loginPassword').value = '';
+    } else {
+      showStatus('loginStatus', data, true);
+    }
+  } catch (e) {
+    showStatus('loginStatus', 'Network error: ' + e.message, true);
+  }
+}
+
+function logout() {
+  accessToken = null;
+  currentUsername = null;
+  updateSessionBar();
+  document.getElementById('loginStatus').style.display = 'none';
+  document.getElementById('usersContainer').innerHTML = '';
+  document.getElementById('banStatus').style.display = 'none';
+}
+
+// ── Poll creation ─────────────────────────────────────────────────────────────
+function addChoice() {
+  const container = document.getElementById('choicesContainer');
+  const count = container.querySelectorAll('.choice-row').length + 1;
+  const row = document.createElement('div');
+  row.className = 'choice-row';
+  row.innerHTML = `<input class="choiceInput" placeholder="Choice ${count}">
+    <button class="ghost small" style="margin-top:0;" onclick="removeChoice(this)">×</button>`;
+  container.appendChild(row);
+}
+
+function removeChoice(btn) {
+  const rows = document.querySelectorAll('.choice-row');
+  if (rows.length > 2) btn.parentElement.remove();
+}
+
+function resetPollForm() {
+  document.getElementById('pollTitle').value = '';
+  document.getElementById('pollDescription').value = '';
+  const container = document.getElementById('choicesContainer');
+  container.innerHTML = `
+    <div class="choice-row">
+      <input class="choiceInput" placeholder="Choice 1">
+      <button class="ghost small" style="margin-top:0;" onclick="removeChoice(this)">×</button>
+    </div>
+    <div class="choice-row">
+      <input class="choiceInput" placeholder="Choice 2">
+      <button class="ghost small" style="margin-top:0;" onclick="removeChoice(this)">×</button>
+    </div>`;
+}
+
+async function createPoll() {
+  if (!accessToken) { showStatus('createStatus', 'You must log in first.', true); return; }
+  const choices = Array.from(document.querySelectorAll('.choiceInput'))
+    .map(i => i.value.trim()).filter(v => v.length > 0);
+  const body = {
+    title: document.getElementById('pollTitle').value,
+    description: document.getElementById('pollDescription').value,
+    choices
+  };
+  try {
+    const res = await fetch(apiUrl('/api/polls/'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    showStatus('createStatus', data, !res.ok);
+    if (res.ok) {
+      resetPollForm();
+      loadPolls();
+    }
+  } catch (e) {
+    showStatus('createStatus', 'Network error: ' + e.message, true);
+  }
+}
+
+// ── Polls list ────────────────────────────────────────────────────────────────
+async function loadPolls() {
+  const container = document.getElementById('pollsContainer');
+  container.innerHTML = '<div class="empty">Loading...</div>';
+  try {
+    const res = await fetch(apiUrl('/api/polls/'));
+    const data = await res.json();
+    const polls = data.results || data;
+    if (!polls.length) {
+      container.innerHTML = '<div class="empty">No polls yet. Create one above.</div>';
+      return;
+    }
+    container.innerHTML = '';
+    polls.forEach(poll => {
+      const card = document.createElement('div');
+      card.className = 'poll-card';
+      card.innerHTML = `
+        <h3>${poll.title} ${!poll.is_open ? '<span class="closed-tag">(closed)</span>' : ''}</h3>
+        <div class="meta">by ${poll.created_by} · ${poll.description || 'no description'}</div>
+        <div class="choices-list">
+          ${poll.choices.map(c =>
+            `<span class="choice-pill" onclick="vote(${poll.id}, ${c.id})" title="Click to vote">${c.text}</span>`
+          ).join('')}
+        </div>
+        <div class="row" style="margin-top:0.5rem;">
+          <button class="ghost small" onclick="viewResults(${poll.id}, this)">View results</button>
+          <button class="ghost small" onclick="closePoll(${poll.id})">Close poll</button>
+        </div>
+        <div id="resultsBox-${poll.id}"></div>
+      `;
+      container.appendChild(card);
+    });
+  } catch (e) {
+    container.innerHTML = `<div class="status err">Network error: ${e.message}</div>`;
+  }
+}
+
+async function vote(pollId, choiceId) {
+  if (!accessToken) { alert('You must log in first.'); return; }
+  try {
+    const res = await fetch(apiUrl(`/api/polls/${pollId}/vote/`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + accessToken },
+      body: JSON.stringify({ choice_id: choiceId })
+    });
+    const data = await res.json();
+    alert(res.ok ? 'Vote recorded.' : extractError(data));
+    if (res.ok) loadPolls();
+  } catch (e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+async function viewResults(pollId, btn) {
+  const box = document.getElementById(`resultsBox-${pollId}`);
+  // Toggle off if already showing
+  if (box.innerHTML !== '') { box.innerHTML = ''; return; }
+  try {
+    const res = await fetch(apiUrl(`/api/polls/${pollId}/results/`));
+    const data = await res.json();
+    const total = data.results.reduce((sum, r) => sum + r.votes, 0) || 1;
+    box.innerHTML = '<div style="margin-top:0.5rem;">' +
+      data.results.map(r => `
+        <div class="result-row">
+          <span style="color:var(--muted);">${r.choice}</span>
+          — ${r.votes} vote${r.votes !== 1 ? 's' : ''}
+          <div class="results-bar-bg">
+            <div class="results-bar-fill" style="width:${(r.votes / total) * 100}%"></div>
+          </div>
+        </div>`).join('') +
+      '</div>';
+    btn.textContent = 'Hide results';
+  } catch (e) {
+    box.innerHTML = `<div class="status err">Network error: ${e.message}</div>`;
+  }
+}
+
+async function closePoll(pollId) {
+  if (!accessToken) { alert('You must log in first.'); return; }
+  try {
+    const res = await fetch(apiUrl(`/api/polls/${pollId}/close/`), {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    });
+    const data = await res.json();
+    alert(res.ok ? 'Poll closed.' : extractError(data));
+    if (res.ok) loadPolls();
+  } catch (e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+// ── User management (admin only) ──────────────────────────────────────────────
+async function loadUsers() {
+  if (!accessToken) {
+    showStatus('banStatus', 'You must be logged in as admin to manage users.', true);
+    return;
+  }
+  const container = document.getElementById('usersContainer');
+  container.innerHTML = '<div class="empty">Loading users...</div>';
+  try {
+    const res = await fetch(apiUrl('/api/auth/users/'), {
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      container.innerHTML = '';
+      showStatus('banStatus', extractError(data), true);
+      return;
+    }
+    if (!data.length) {
+      container.innerHTML = '<div class="empty">No users found.</div>';
+      return;
+    }
+    let rows = data.map(u => `
+      <tr>
+        <td style="color:var(--muted);">${u.id}</td>
+        <td>${u.username}</td>
+        <td><span class="role-badge ${u.role}">${u.role}</span></td>
+        <td>
+          <span class="active-dot ${u.is_active ? 'on' : 'off'}"></span>
+          ${u.is_active ? 'active' : 'banned'}
+        </td>
+        <td>
+          ${u.role !== 'admin'
+            ? u.is_active
+              ? `<button class="danger small" onclick="banUser(${u.id})">Ban</button>`
+              : `<button class="safe small" onclick="unbanUser(${u.id})">Unban</button>`
+            : '<span style="color:var(--muted);font-size:0.72rem;">protected</span>'
+          }
+        </td>
+      </tr>`).join('');
+    container.innerHTML = `
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Username</th><th>Role</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    document.getElementById('banStatus').style.display = 'none';
+  } catch (e) {
+    container.innerHTML = '';
+    showStatus('banStatus', 'Network error: ' + e.message, true);
+  }
+}
+
+async function banUser(pk) {
+  try {
+    const res = await fetch(apiUrl(`/api/auth/users/${pk}/ban/`), {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    });
+    const data = await res.json();
+    showStatus('banStatus', extractError(data), !res.ok);
+    if (res.ok) loadUsers();
+  } catch (e) {
+    showStatus('banStatus', 'Network error: ' + e.message, true);
+  }
+}
+
+async function unbanUser(pk) {
+  try {
+    const res = await fetch(apiUrl(`/api/auth/users/${pk}/unban/`), {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + accessToken }
+    });
+    const data = await res.json();
+    showStatus('banStatus', extractError(data), !res.ok);
+    if (res.ok) loadUsers();
+  } catch (e) {
+    showStatus('banStatus', 'Network error: ' + e.message, true);
+  }
+}
+
+// Initial load
+loadPolls();
+</script>
+
+</body>
+</html>
