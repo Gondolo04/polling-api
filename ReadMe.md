@@ -1,13 +1,12 @@
 # Polling Application API
 
-**Student:** Andrea Panico
-**Course:** Progettazione e Produzione Multimediale — Back-end (2026)
+*Progettazione e Produzione Multimediale — Back-end (2026) — Andrea Panico*
 
 ---
 
 ## Project type
 
-**REST API** — a back-end application with REST endpoints, JWT authentication, serializers, role-based permissions, JSON responses, and a documented HTML testing client.
+**REST API** — Polling API
 
 ---
 
@@ -58,11 +57,21 @@ A REST API for a polling platform. Authenticated users can create polls with mul
 
 ---
 
-## Local installation
+## Deployment
+
+**Live API:** https://polling-api-npt4.onrender.com
+
+**Test client:** https://gondolo04.github.io/polling-api/
+
+> **Note:** the API is hosted on Render's free tier, which spins down after 15 minutes of inactivity. The first request after a period of inactivity may take 30–60 seconds to respond. Subsequent requests are fast.
+
+---
+
+## Local installation (optional)
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/polling-api.git
+git clone https://github.com/gondolo04/polling-api.git
 cd polling-api
 ```
 
@@ -96,7 +105,7 @@ python manage.py migrate
 python popola_db.py
 ```
 
-This creates all demo accounts, 5 sample polls with choices, and 12 pre-existing votes spread across polls. See the output summary for the full list of what was created.
+This creates all demo accounts, 5 sample polls with choices, and 12 pre-existing votes spread across polls. The script clears all existing data first, so it can safely be run multiple times to reset the database to a clean demo state.
 
 ### 6. Start the development server
 ```bash
@@ -122,14 +131,6 @@ The repository includes `db.sqlite3`, pre-populated with demo accounts, polls, c
 | `mod_demo` | `mod12345` | Moderator | Can manage any poll |
 | `user_demo` | `user12345` | User | Standard account |
 | `alice_demo` | `alice12345` | User | Additional standard account |
-
----
-
-## Deployment
-
-**Live URL:** `https://YOUR_DEPLOYMENT_URL_HERE`
-
-The deployed API exposes the same endpoints documented below. The HTML test client can be pointed at the live URL by updating the "API base" field at the top of the client page.
 
 ---
 
@@ -211,22 +212,11 @@ The deployed API exposes the same endpoints documented below. The HTML test clie
 
 ## Testing workflow — HTML client
 
-A standalone HTML test client is included at `client/poll_api_client.html`. Open it in any browser — no installation required. By default it points to `http://127.0.0.1:8000`. To test the deployed version, update the "API base" field at the top of the page to the live URL.
+A standalone HTML test client is available at:
 
-### Setup
+**https://gondolo04.github.io/polling-api/**
 
-Start the Django server in one terminal:
-```bash
-python manage.py runserver
-```
-
-Serve the HTML client in a second terminal:
-```bash
-cd client
-python -m http.server 8080
-```
-
-Open `http://localhost:8080/poll_api_client.html` in a browser.
+Open it in any browser — no installation or local server required. The client is pre-configured to point at the live deployed API at `https://polling-api-npt4.onrender.com`. To test against a local instance instead, update the "API base" field at the top of the page to `http://127.0.0.1:8000`.
 
 ---
 
@@ -238,7 +228,7 @@ On page load, the poll list fetches automatically with no login required. All 5 
 
 ### Workflow 2 — Register and log in
 
-1. In the **Register** panel, fill in a new username, email, and password (minimum 8 characters), then click **Create account**. A green confirmation box appears and the fields clear automatically.
+1. In the **Register** panel, fill in a new username, email, and password (minimum 8 characters), then click **Create account**. A green confirmation appears and the fields clear automatically.
 2. In the **Log in** panel, enter the same credentials and click **Log in**. The session bar at the top updates to show the logged-in username.
 
 ---
@@ -247,7 +237,7 @@ On page load, the poll list fetches automatically with no login required. All 5 
 
 1. Fill in the **Create poll** panel with a title, optional description, and at least 2 choices. Click **Create poll**. The new poll appears at the top of the list and the form resets automatically.
 2. Scroll to **Best Italian city to visit?** (0 votes by default). Click any choice pill to cast a vote. An alert confirms "Vote recorded."
-3. Click the same poll's **View results** to see the updated count.
+3. Click **View results** on the same poll to see the updated count.
 4. Try voting again on the same poll — the alert returns "You already voted on this poll." (400 error).
 
 ---
@@ -280,10 +270,10 @@ On page load, the poll list fetches automatically with no login required. All 5 
 1. Log out, then log in as `admin_demo / admin12345`.
 2. Scroll to the **User management** panel at the bottom and click **Load users**.
 3. A table appears showing all users, their roles, and active/banned status.
-4. Click **Ban** next to `user_demo`. A green confirmation message appears and the table refreshes — `user_demo` now shows as banned.
-5. Log out, then attempt to log in as `user_demo / user12345`. The login returns "No active account found with the given credentials." (banned users cannot authenticate).
+4. Click **Ban** next to `user_demo`. A confirmation message appears and the table refreshes — `user_demo` now shows as banned.
+5. Log out, then attempt to log in as `user_demo / user12345`. The login returns "No active account found with the given credentials." — banned users cannot authenticate.
 6. Log back in as `admin_demo`, reload users, and click **Unban** next to `user_demo` to restore access.
-7. Note that admin accounts display "protected" in the Action column and cannot be banned.
+7. Note that admin accounts show "protected" in the Action column and cannot be banned.
 
 ---
 
